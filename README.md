@@ -31,27 +31,15 @@ ACCOUNT_ID='your-account.near'
 3. Install dependencies:
 
 
-3.1: Docker
+  ```bash
+  pnpm install
+  ```
 
-Be sure to have a docker daomon installed on your machine. 
+  4. Start the development server:
 
-```bash
-docker-compose up --build
-```
-
-
-
-3.2: CLI
-
-```bash
-pnpm install
-```
-
-4. Start the development server:
-
-```bash
-pnpm run dev
-```
+  ```bash
+  pnpm run dev
+  ```
 
 This will:
 
@@ -70,6 +58,81 @@ pnpm run build:dev
 This will build the project and not trigger `make-agent deploy`
 
 - using just `build` will trigger make-agent deploy and not work unless you provide your deployed plugin url using the `-u` flag.
+
+
+## Quick Start Docker
+
+**Prerequisites**
+
+- **Docker & Docker Compose:**
+Ensure you have Docker (and Docker Compose) installed on your machine. This setup uses a Linux/BusyBox-based Node.js image, so it is optimized for containerized environments.
+
+**Environment Variables:**
+- Make sure to create a local .env file (which is excluded from version control) that contains your environment-specific settings such as:
+
+- ```BITTE_API_KEY```
+- ```BITTE_AGENT_URL``` (if needed; by default, the agent will fetch its OpenAPI spec from port 3000)
+
+**How the Docker Setup Works**
+
+- **Image Build and Dependency Installation:**
+The Dockerfile installs dependencies via pnpm install. If you bind mount your source code directory ```(using - .:/app)```, note that an empty host node_modules folder might override the container’s installed modules.
+
+- **Tip**: Use a named volume for node_modules in your docker-compose file to preserve the installed dependencies:
+
+```yaml
+volumes:
+  - .:/app
+  - node_modules:/app/node_modules
+```
+
+**CLI install vs. Docker Mode:**
+- Running docker-compose up --build is intended for testing the application in an environment that closely mimics production. While this mode does not offer the hot-reloading benefits provided by the CLI method (since code changes in the host may not trigger module reinstallation), it is ideal for testing the application without having to install additional libraries or binaries on your machine.
+
+**Port Mapping**:
+- By default, the Next.js server runs on port 3000. In our compose setup, we map port 3000 of the container to port 3000 on the host. (Note: The agent UI server may run on a different port, such as 3001, if configured so.)
+
+**Troubleshooting Common Issues**
+- **Port Detection Errors:**
+
+You might see errors like:
+
+```javascript
+Error detecting port: Command failed: netstat -ano | findstr :LISTENING | findstr node.exe
+```
+This happens because the command being executed is Windows‑specific:
+
+- **findstr Not Found:** The BusyBox environment does not have "findstr" (a Windows command).
+- **Netstat Option Issues:** BusyBox’s ```netstat``` does not support the "-o" flag.
+
+**Workaround:**
+- Modify your Dockerfile to install ```net-tools``` (which provides a fuller version of netstat) and create a symbolic link so that calls to "findstr" are redirected to "grep":
+
+```dockerfile
+RUN apk add --no-cache net-tools && ln -s /bin/grep /usr/local/bin/findstr
+```
+
+**OpenAPI Spec Fetch Failures:**
+
+If you see connection errors (e.g., ECONNREFUSED on port 3001), verify that:
+
+- Your environment variable ```BITTE_AGENT_URL``` is correctly set to the URL where the Next.js server is running (typically ```http://localhost:3000``` if you’re not using a separate port).
+- The service that serves the OpenAPI spec is actually running and listening on that port.
+Running the Docker Setup
+
+To build and run the containers, execute:
+
+```bash
+docker-compose up --build
+```
+
+This command will:
+
+Build your Docker image based on the provided Dockerfile.
+Spin up the container with the proper volume mappings and environment variables.
+Start the Next.js server (and the make-agent process via concurrently) inside the container.
+
+
 
 ## Available Tools
 
