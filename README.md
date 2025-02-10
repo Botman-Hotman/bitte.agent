@@ -30,6 +30,19 @@ ACCOUNT_ID='your-account.near'
 
 3. Install dependencies:
 
+
+3.1: Docker
+
+Be sure to have a docker daomon installed on your machine. 
+
+```bash
+docker-compose up --build
+```
+
+
+
+3.2: CLI
+
 ```bash
 pnpm install
 ```
